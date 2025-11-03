@@ -38,6 +38,10 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
             add_action( 'admin_post_github_plugin_installer_and_updater', array( $this, 'handle_update_request' ) );
             add_action( 'admin_bar_menu', array( $this, 'register_admin_bar_items' ), 120 );
             add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
+
+            add_filter( 'pre_set_site_transient_update_plugins', array( $this, 'maybe_inject_self_update' ) );
+            add_filter( 'plugins_api', array( $this, 'maybe_provide_self_update_details' ), 10, 3 );
+            add_filter( 'http_request_args', array( $this, 'maybe_authorize_github_download' ), 10, 2 );
         }
 
         /**
@@ -100,6 +104,29 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
                 array( $this, 'render_account_section_description' ),
                 self::ADMIN_SLUG
             );
+
+            add_settings_section(
+                'github_plugin_installer_and_updater_self_update',
+                __( 'Self Update Settings', 'github-plugin-installer-and-updater' ),
+                array( $this, 'render_self_update_section_description' ),
+                self::ADMIN_SLUG
+            );
+
+            add_settings_field(
+                'self_update_repository_url',
+                __( 'Plugin Repository URL', 'github-plugin-installer-and-updater' ),
+                array( $this, 'render_self_update_repository_url_field' ),
+                self::ADMIN_SLUG,
+                'github_plugin_installer_and_updater_self_update'
+            );
+
+            add_settings_field(
+                'self_update_repository_branch',
+                __( 'Branch or Tag', 'github-plugin-installer-and-updater' ),
+                array( $this, 'render_self_update_repository_branch_field' ),
+                self::ADMIN_SLUG,
+                'github_plugin_installer_and_updater_self_update'
+            );
         }
 
         /**
@@ -123,6 +150,16 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
             if ( isset( $input['github_token'] ) ) {
                 $sanitized['github_token'] = sanitize_text_field( $input['github_token'] );
             }
+
+            if ( isset( $input['self_update_repository_url'] ) ) {
+                $sanitized['self_update_repository_url'] = esc_url_raw( trim( $input['self_update_repository_url'] ) );
+            }
+
+            if ( isset( $input['self_update_repository_branch'] ) ) {
+                $sanitized['self_update_repository_branch'] = sanitize_text_field( $input['self_update_repository_branch'] );
+            }
+
+            $this->maybe_clear_self_update_cache( $sanitized );
 
             $this->settings = $sanitized;
 
@@ -183,6 +220,39 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
             );
 
             echo '<p class="description">' . esc_html__( 'Token is optional for public repositories but required for private repositories. Token will be stored in plain text inside the WordPress options table; avoid reusing sensitive tokens.', 'github-plugin-installer-and-updater' ) . '</p>';
+        }
+
+        /**
+         * Render the self update section description.
+         */
+        public function render_self_update_section_description() {
+            echo '<p>' . esc_html__( 'Provide the GitHub repository where this plugin is hosted to enable automatic updates for the installer itself.', 'github-plugin-installer-and-updater' ) . '</p>';
+        }
+
+        /**
+         * Render the self update repository URL field.
+         */
+        public function render_self_update_repository_url_field() {
+            printf(
+                '<input type="url" class="regular-text" name="%1$s[self_update_repository_url]" id="bokun_self_update_repository_url" value="%2$s" placeholder="%3$s" />',
+                esc_attr( self::OPTION_KEY ),
+                esc_attr( $this->settings['self_update_repository_url'] ),
+                esc_attr__( 'https://github.com/owner/repository', 'github-plugin-installer-and-updater' )
+            );
+
+            echo '<p class="description">' . esc_html__( 'The plugin will check this repository for new versions of itself.', 'github-plugin-installer-and-updater' ) . '</p>';
+        }
+
+        /**
+         * Render the self update repository branch field.
+         */
+        public function render_self_update_repository_branch_field() {
+            printf(
+                '<input type="text" class="regular-text" name="%1$s[self_update_repository_branch]" id="bokun_self_update_repository_branch" value="%2$s" placeholder="%3$s" />',
+                esc_attr( self::OPTION_KEY ),
+                esc_attr( $this->settings['self_update_repository_branch'] ),
+                esc_attr__( 'main', 'github-plugin-installer-and-updater' )
+            );
         }
 
         /**
@@ -723,6 +793,8 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
                 'repository_url'    => '',
                 'repository_branch' => 'main',
                 'github_token'      => '',
+                'self_update_repository_url'    => '',
+                'self_update_repository_branch' => 'main',
             );
         }
 
@@ -804,6 +876,279 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
          */
         private function get_repo_cache_key( $token ) {
             return 'bokun_github_repos_' . md5( $token );
+        }
+
+        /**
+         * Maybe add a self update entry to the plugin update transient.
+         *
+         * @param stdClass $transient Update transient.
+         *
+         * @return stdClass
+         */
+        public function maybe_inject_self_update( $transient ) {
+            if ( ! is_object( $transient ) ) {
+                $transient = new stdClass();
+            }
+
+            if ( ! function_exists( 'get_plugin_data' ) ) {
+                require_once ABSPATH . 'wp-admin/includes/plugin.php';
+            }
+
+            $plugin_file = plugin_basename( __FILE__ );
+
+            $settings = $this->get_settings();
+
+            if ( empty( $settings['self_update_repository_url'] ) ) {
+                return $transient;
+            }
+
+            $remote = $this->get_self_update_remote_info( $settings );
+
+            if ( is_wp_error( $remote ) ) {
+                return $transient;
+            }
+
+            $plugin_data     = get_plugin_data( __FILE__, false, false );
+            $current_version = isset( $plugin_data['Version'] ) ? $plugin_data['Version'] : '0';
+
+            if ( version_compare( $remote['version'], $current_version, '>' ) ) {
+                $update = (object) array(
+                    'slug'        => 'github-plugin-installer-and-updater',
+                    'plugin'      => $plugin_file,
+                    'new_version' => $remote['version'],
+                    'package'     => $remote['package'],
+                    'url'         => $remote['homepage'],
+                );
+
+                $transient->response[ $plugin_file ] = $update;
+            } else {
+                if ( isset( $transient->response[ $plugin_file ] ) ) {
+                    unset( $transient->response[ $plugin_file ] );
+                }
+
+                if ( ! isset( $transient->no_update ) ) {
+                    $transient->no_update = array();
+                }
+
+                $transient->no_update[ $plugin_file ] = (object) array(
+                    'slug'        => 'github-plugin-installer-and-updater',
+                    'plugin'      => $plugin_file,
+                    'new_version' => $current_version,
+                    'package'     => '',
+                    'url'         => $remote['homepage'],
+                );
+            }
+
+            if ( ! isset( $transient->checked ) || ! is_array( $transient->checked ) ) {
+                $transient->checked = array();
+            }
+
+            $transient->checked[ $plugin_file ] = $current_version;
+
+            return $transient;
+        }
+
+        /**
+         * Provide plugin information for the self update dialog.
+         *
+         * @param false|object|array $result Existing result.
+         * @param string             $action Requested action.
+         * @param object             $args   Arguments.
+         *
+         * @return false|object|array
+         */
+        public function maybe_provide_self_update_details( $result, $action, $args ) {
+            if ( 'plugin_information' !== $action || empty( $args->slug ) || 'github-plugin-installer-and-updater' !== $args->slug ) {
+                return $result;
+            }
+
+            if ( ! function_exists( 'get_plugin_data' ) ) {
+                require_once ABSPATH . 'wp-admin/includes/plugin.php';
+            }
+
+            $settings = $this->get_settings();
+
+            if ( empty( $settings['self_update_repository_url'] ) ) {
+                return $result;
+            }
+
+            $remote = $this->get_self_update_remote_info( $settings );
+
+            if ( is_wp_error( $remote ) ) {
+                return $result;
+            }
+
+            $plugin_data = get_plugin_data( __FILE__, false, false );
+
+            $info = (object) array(
+                'name'          => isset( $plugin_data['Name'] ) ? $plugin_data['Name'] : __( 'GitHub Plugin Installer and Updater', 'github-plugin-installer-and-updater' ),
+                'slug'          => 'github-plugin-installer-and-updater',
+                'version'       => $remote['version'],
+                'author'        => isset( $plugin_data['AuthorName'] ) ? $plugin_data['AuthorName'] : '',
+                'homepage'      => $remote['homepage'],
+                'download_link' => $remote['package'],
+                'sections'      => array(
+                    'description' => wp_kses_post( __( 'Installs and updates Bokun plugins directly from GitHub repositories.', 'github-plugin-installer-and-updater' ) ),
+                ),
+            );
+
+            return $info;
+        }
+
+        /**
+         * Inject authorization headers for GitHub downloads when required.
+         *
+         * @param array  $args Request arguments.
+         * @param string $url  Request URL.
+         *
+         * @return array
+         */
+        public function maybe_authorize_github_download( $args, $url ) {
+            $settings = $this->get_settings();
+
+            if ( empty( $settings['github_token'] ) ) {
+                return $args;
+            }
+
+            if ( false === stripos( $url, 'api.github.com/repos' ) ) {
+                return $args;
+            }
+
+            if ( ! isset( $args['headers'] ) || ! is_array( $args['headers'] ) ) {
+                $args['headers'] = array();
+            }
+
+            if ( empty( $args['headers']['Authorization'] ) ) {
+                $args['headers']['Authorization'] = 'Bearer ' . $settings['github_token'];
+            }
+
+            if ( empty( $args['headers']['User-Agent'] ) ) {
+                $args['headers']['User-Agent'] = 'WordPress/' . get_bloginfo( 'version' ) . '; ' . home_url();
+            }
+
+            return $args;
+        }
+
+        /**
+         * Retrieve remote information required for self updates.
+         *
+         * @param array $settings Current plugin settings.
+         *
+         * @return array|WP_Error
+         */
+        private function get_self_update_remote_info( $settings ) {
+            $cache_key = $this->get_self_update_cache_key( $settings['self_update_repository_url'], $settings['self_update_repository_branch'] );
+            $cached    = get_transient( $cache_key );
+
+            if ( false !== $cached ) {
+                return $cached;
+            }
+
+            $parsed_repo = $this->parse_repository_url( $settings['self_update_repository_url'] );
+
+            if ( is_wp_error( $parsed_repo ) ) {
+                return $parsed_repo;
+            }
+
+            $branch = ! empty( $settings['self_update_repository_branch'] ) ? $settings['self_update_repository_branch'] : 'main';
+            $token  = $settings['github_token'];
+
+            $file_url = sprintf( 'https://raw.githubusercontent.com/%1$s/%2$s/%3$s/github-plugin-installer-and-updater.php', $parsed_repo['owner'], $parsed_repo['repo'], rawurlencode( $branch ) );
+
+            $headers = array(
+                'Accept'     => 'application/vnd.github+json',
+                'User-Agent' => 'WordPress/' . get_bloginfo( 'version' ) . '; ' . home_url(),
+            );
+
+            if ( ! empty( $token ) ) {
+                $headers['Authorization'] = 'Bearer ' . $token;
+            }
+
+            $response = wp_remote_get(
+                $file_url,
+                array(
+                    'headers' => $headers,
+                    'timeout' => 30,
+                )
+            );
+
+            if ( is_wp_error( $response ) ) {
+                return $response;
+            }
+
+            $code = (int) wp_remote_retrieve_response_code( $response );
+
+            if ( 200 !== $code ) {
+                $message = wp_remote_retrieve_body( $response );
+
+                if ( empty( $message ) ) {
+                    $message = __( 'Unable to fetch plugin details from GitHub for self updates.', 'github-plugin-installer-and-updater' );
+                }
+
+                return new WP_Error( 'self_update_remote', $message );
+            }
+
+            $body = wp_remote_retrieve_body( $response );
+
+            if ( ! $body ) {
+                return new WP_Error( 'self_update_remote', __( 'The GitHub response did not contain plugin metadata.', 'github-plugin-installer-and-updater' ) );
+            }
+
+            $version = $this->extract_version_from_plugin_header( $body );
+
+            if ( empty( $version ) ) {
+                return new WP_Error( 'self_update_version', __( 'Unable to determine the remote plugin version for self updates.', 'github-plugin-installer-and-updater' ) );
+            }
+
+            $remote = array(
+                'version'  => $version,
+                'package'  => sprintf( 'https://api.github.com/repos/%1$s/%2$s/zipball/%3$s', $parsed_repo['owner'], $parsed_repo['repo'], rawurlencode( $branch ) ),
+                'homepage' => sprintf( 'https://github.com/%1$s/%2$s', $parsed_repo['owner'], $parsed_repo['repo'] ),
+            );
+
+            set_transient( $cache_key, $remote, HOUR_IN_SECONDS );
+
+            return $remote;
+        }
+
+        /**
+         * Derive the cache key used for self update lookups.
+         *
+         * @param string $repository_url Repository URL.
+         * @param string $branch         Branch.
+         *
+         * @return string
+         */
+        private function get_self_update_cache_key( $repository_url, $branch ) {
+            return 'github_plugin_installer_self_update_' . md5( $repository_url . '|' . $branch );
+        }
+
+        /**
+         * Clear the cached self update information when settings change.
+         *
+         * @param array $settings Current settings.
+         */
+        private function maybe_clear_self_update_cache( $settings ) {
+            if ( empty( $settings['self_update_repository_url'] ) ) {
+                return;
+            }
+
+            delete_transient( $this->get_self_update_cache_key( $settings['self_update_repository_url'], $settings['self_update_repository_branch'] ) );
+        }
+
+        /**
+         * Extract the version string from a plugin file header.
+         *
+         * @param string $plugin_contents Plugin file contents.
+         *
+         * @return string
+         */
+        private function extract_version_from_plugin_header( $plugin_contents ) {
+            if ( ! preg_match( '/^\s*\*\s*Version:\s*(.+)$/mi', $plugin_contents, $matches ) ) {
+                return '';
+            }
+
+            return trim( $matches[1] );
         }
 
         /**
