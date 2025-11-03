@@ -43,6 +43,7 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
             add_filter( 'pre_set_site_transient_update_plugins', array( $this, 'maybe_inject_self_update' ) );
             add_filter( 'plugins_api', array( $this, 'maybe_provide_self_update_details' ), 10, 3 );
             add_filter( 'http_request_args', array( $this, 'maybe_authorize_github_download' ), 10, 2 );
+            add_action( 'wp_clean_plugins_cache', array( $this, 'handle_plugins_cache_cleared' ) );
         }
 
         /**
@@ -1039,10 +1040,15 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
          */
         private function get_self_update_remote_info( $settings ) {
             $cache_key = $this->get_self_update_cache_key( $settings['self_update_repository_url'], $settings['self_update_repository_branch'] );
-            $cached    = get_transient( $cache_key );
 
-            if ( false !== $cached ) {
-                return $cached;
+            if ( $this->should_bypass_self_update_cache() ) {
+                delete_transient( $cache_key );
+            } else {
+                $cached = get_transient( $cache_key );
+
+                if ( false !== $cached ) {
+                    return $cached;
+                }
             }
 
             $parsed_repo = $this->parse_repository_url( $settings['self_update_repository_url'] );
@@ -1107,9 +1113,41 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
                 'homepage' => sprintf( 'https://github.com/%1$s/%2$s', $parsed_repo['owner'], $parsed_repo['repo'] ),
             );
 
-            set_transient( $cache_key, $remote, HOUR_IN_SECONDS );
+            set_transient( $cache_key, $remote, 5 * MINUTE_IN_SECONDS );
 
             return $remote;
+        }
+
+        /**
+         * Flush the cached self-update lookup when WordPress clears plugin updates.
+         *
+         * @param bool $clear_update_cache Whether to clear update caches.
+         */
+        public function handle_plugins_cache_cleared( $clear_update_cache ) {
+            if ( ! $clear_update_cache ) {
+                return;
+            }
+
+            $settings = $this->get_settings();
+
+            $this->maybe_clear_self_update_cache( $settings );
+        }
+
+        /**
+         * Determine whether the remote self-update cache should be bypassed.
+         *
+         * @return bool
+         */
+        private function should_bypass_self_update_cache() {
+            if ( isset( $_GET['force-check'] ) && '1' === $_GET['force-check'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+                return true;
+            }
+
+            if ( defined( 'WP_CLI' ) && WP_CLI ) {
+                return true;
+            }
+
+            return false;
         }
 
         /**
