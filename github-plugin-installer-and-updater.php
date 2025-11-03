@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Github Plugin Installer and Updater
  * Description: Adds GitHub installation and update tooling for the Bokun Bookings Management plugin.
- * Version: 1.0.1
+ * Version: 1.0.2
  * Author: Hitesh (HWT)
  * Text Domain: github-plugin-installer-and-updater
  */
@@ -19,7 +19,7 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
         const OPTION_KEY = 'github_plugin_installer_and_updater_settings';
         const ADMIN_SLUG = 'github-plugin-installer-and-updater';
         const NOTICE_KEY = 'github_plugin_installer_and_updater_notice';
-        const VERSION    = '1.0.1';
+        const VERSION    = '1.0.2';
 
         /**
          * Cached settings.
