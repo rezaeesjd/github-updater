@@ -1039,7 +1039,17 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
          * @return array|WP_Error
          */
         private function get_self_update_remote_info( $settings ) {
-            $cache_key = $this->get_self_update_cache_key( $settings['self_update_repository_url'], $settings['self_update_repository_branch'] );
+            $parsed_repo = $this->parse_repository_url( $settings['self_update_repository_url'] );
+
+            if ( is_wp_error( $parsed_repo ) ) {
+                return $parsed_repo;
+            }
+
+            $branch          = $this->resolve_self_update_branch( $settings, $parsed_repo );
+            $explicit_branch = ! empty( $settings['self_update_repository_branch'] );
+            $token           = $settings['github_token'];
+
+            $cache_key = $this->get_self_update_cache_key( $settings['self_update_repository_url'], $branch );
 
             if ( $this->should_bypass_self_update_cache() ) {
                 delete_transient( $cache_key );
@@ -1051,39 +1061,40 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
                 }
             }
 
-            $parsed_repo = $this->parse_repository_url( $settings['self_update_repository_url'] );
-
-            if ( is_wp_error( $parsed_repo ) ) {
-                return $parsed_repo;
-            }
-
-            $branch = ! empty( $settings['self_update_repository_branch'] ) ? $settings['self_update_repository_branch'] : 'main';
-            $token  = $settings['github_token'];
-
-            $file_url = sprintf( 'https://raw.githubusercontent.com/%1$s/%2$s/%3$s/github-plugin-installer-and-updater.php', $parsed_repo['owner'], $parsed_repo['repo'], rawurlencode( $branch ) );
-
-            $headers = array(
-                'Accept'     => 'application/vnd.github+json',
-                'User-Agent' => 'WordPress/' . get_bloginfo( 'version' ) . '; ' . home_url(),
-            );
-
-            if ( ! empty( $token ) ) {
-                $headers['Authorization'] = 'Bearer ' . $token;
-            }
-
-            $response = wp_remote_get(
-                $file_url,
-                array(
-                    'headers' => $headers,
-                    'timeout' => 30,
-                )
-            );
+            $response = $this->request_self_update_file( $parsed_repo, $branch, $token );
 
             if ( is_wp_error( $response ) ) {
                 return $response;
             }
 
             $code = (int) wp_remote_retrieve_response_code( $response );
+
+            if ( 404 === $code && ! $explicit_branch && 'master' !== $branch ) {
+                $branch    = 'master';
+                $cache_key = $this->get_self_update_cache_key( $settings['self_update_repository_url'], $branch );
+
+                if ( $this->should_bypass_self_update_cache() ) {
+                    delete_transient( $cache_key );
+                } else {
+                    $cached = get_transient( $cache_key );
+
+                    if ( false !== $cached ) {
+                        return $cached;
+                    }
+                }
+
+                $response = $this->request_self_update_file( $parsed_repo, $branch, $token );
+
+                if ( is_wp_error( $response ) ) {
+                    return $response;
+                }
+
+                $code = (int) wp_remote_retrieve_response_code( $response );
+
+                if ( 200 === $code ) {
+                    $this->maybe_cache_default_branch( $parsed_repo, $branch );
+                }
+            }
 
             if ( 200 !== $code ) {
                 $message = wp_remote_retrieve_body( $response );
@@ -1163,6 +1174,125 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
         }
 
         /**
+         * Resolve the branch that should be used for self-update lookups.
+         *
+         * @param array $settings    Current settings.
+         * @param array $parsed_repo Parsed repository information.
+         *
+         * @return string
+         */
+        private function resolve_self_update_branch( $settings, $parsed_repo ) {
+            if ( ! empty( $settings['self_update_repository_branch'] ) ) {
+                return $settings['self_update_repository_branch'];
+            }
+
+            $cache_key = $this->get_default_branch_cache_key( $parsed_repo['owner'], $parsed_repo['repo'] );
+
+            if ( $this->should_bypass_self_update_cache() ) {
+                delete_transient( $cache_key );
+            } else {
+                $cached = get_transient( $cache_key );
+
+                if ( false !== $cached ) {
+                    return $cached;
+                }
+            }
+
+            $headers = array(
+                'Accept'     => 'application/vnd.github+json',
+                'User-Agent' => 'WordPress/' . get_bloginfo( 'version' ) . '; ' . home_url(),
+            );
+
+            if ( ! empty( $settings['github_token'] ) ) {
+                $headers['Authorization'] = 'Bearer ' . $settings['github_token'];
+            }
+
+            $response = wp_remote_get(
+                sprintf( 'https://api.github.com/repos/%1$s/%2$s', $parsed_repo['owner'], $parsed_repo['repo'] ),
+                array(
+                    'headers' => $headers,
+                    'timeout' => 30,
+                )
+            );
+
+            if ( is_wp_error( $response ) ) {
+                return 'main';
+            }
+
+            $code = (int) wp_remote_retrieve_response_code( $response );
+
+            if ( 200 !== $code ) {
+                return 'main';
+            }
+
+            $body = json_decode( wp_remote_retrieve_body( $response ), true );
+
+            if ( isset( $body['default_branch'] ) && $body['default_branch'] ) {
+                $branch = sanitize_text_field( $body['default_branch'] );
+
+                set_transient( $cache_key, $branch, DAY_IN_SECONDS );
+
+                return $branch;
+            }
+
+            return 'main';
+        }
+
+        /**
+         * Fetch the plugin file contents from GitHub for update comparisons.
+         *
+         * @param array  $parsed_repo Parsed repository information.
+         * @param string $branch      Branch name.
+         * @param string $token       GitHub token.
+         *
+         * @return array|WP_Error
+         */
+        private function request_self_update_file( $parsed_repo, $branch, $token ) {
+            $file_url = sprintf( 'https://raw.githubusercontent.com/%1$s/%2$s/%3$s/github-plugin-installer-and-updater.php', $parsed_repo['owner'], $parsed_repo['repo'], rawurlencode( $branch ) );
+
+            $headers = array(
+                'Accept'     => 'application/vnd.github+json',
+                'User-Agent' => 'WordPress/' . get_bloginfo( 'version' ) . '; ' . home_url(),
+            );
+
+            if ( ! empty( $token ) ) {
+                $headers['Authorization'] = 'Bearer ' . $token;
+            }
+
+            return wp_remote_get(
+                $file_url,
+                array(
+                    'headers' => $headers,
+                    'timeout' => 30,
+                )
+            );
+        }
+
+        /**
+         * Cache the repository default branch after a successful fallback lookup.
+         *
+         * @param array  $parsed_repo Parsed repository information.
+         * @param string $branch      Branch name.
+         */
+        private function maybe_cache_default_branch( $parsed_repo, $branch ) {
+            $cache_key = $this->get_default_branch_cache_key( $parsed_repo['owner'], $parsed_repo['repo'] );
+
+            set_transient( $cache_key, $branch, DAY_IN_SECONDS );
+        }
+
+        /**
+         * Derive the cache key used to store the repository default branch.
+         *
+         * @param string $owner Repository owner.
+         * @param string $repo  Repository name.
+         *
+         * @return string
+         */
+        private function get_default_branch_cache_key( $owner, $repo ) {
+            return 'github_plugin_installer_default_branch_' . md5( $owner . '/' . $repo );
+        }
+
+        /**
          * Clear the cached self update information when settings change.
          *
          * @param array $settings Current settings.
@@ -1172,7 +1302,23 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
                 return;
             }
 
-            delete_transient( $this->get_self_update_cache_key( $settings['self_update_repository_url'], $settings['self_update_repository_branch'] ) );
+            $branch         = isset( $settings['self_update_repository_branch'] ) ? $settings['self_update_repository_branch'] : '';
+            $repository_url = $settings['self_update_repository_url'];
+
+            delete_transient( $this->get_self_update_cache_key( $repository_url, $branch ) );
+
+            if ( empty( $branch ) ) {
+                delete_transient( $this->get_self_update_cache_key( $repository_url, 'main' ) );
+                delete_transient( $this->get_self_update_cache_key( $repository_url, 'master' ) );
+            }
+
+            $parsed_repo = $this->parse_repository_url( $repository_url );
+
+            if ( is_wp_error( $parsed_repo ) ) {
+                return;
+            }
+
+            delete_transient( $this->get_default_branch_cache_key( $parsed_repo['owner'], $parsed_repo['repo'] ) );
         }
 
         /**
