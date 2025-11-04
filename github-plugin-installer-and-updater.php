@@ -4,8 +4,8 @@
  * Plugin URI: https://github.com/hiteshbarot07/github-updater
  * Description: Install or update any WordPress plugin directly from GitHub repositories, including this helper plugin itself.
  * Version: 2.0.0
- * Author: Hitesh (HWT)
- * Author URI: https://github.com/hiteshbarot07
+ * Author: Websage Solutions Lab
+ * Author URI: https://websage.solutions
  * Requires at least: 6.0
  * Requires PHP: 7.4
  * License: GPL-2.0-or-later
