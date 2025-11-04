@@ -461,6 +461,7 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
 
                 echo '<tr class="github-managed-plugin-row">';
                 echo '<td class="github-managed-plugin-column">';
+                echo '<span class="github-managed-field-label">' . esc_html__( 'Plugin', 'github-plugin-installer-and-updater' ) . '</span>';
                 printf(
                     '<label class="screen-reader-text" for="%1$s">%2$s</label>',
                     esc_attr( $plugin_field_id ),
@@ -481,6 +482,7 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
                 echo '</td>';
 
                 echo '<td class="github-managed-repo-column">';
+                echo '<span class="github-managed-field-label">' . esc_html__( 'Repository', 'github-plugin-installer-and-updater' ) . '</span>';
 
                 if ( $has_repositories ) {
                     printf(
@@ -508,6 +510,7 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
                 echo '</td>';
 
                 echo '<td class="github-managed-branch-column">';
+                echo '<span class="github-managed-field-label">' . esc_html__( 'Branch', 'github-plugin-installer-and-updater' ) . '</span>';
                 printf(
                     '<label class="screen-reader-text" for="%1$s">%2$s</label>',
                     esc_attr( $branch_input_id ),
@@ -524,6 +527,7 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
                 echo '</td>';
 
                 echo '<td class="github-managed-token-column">';
+                echo '<span class="github-managed-field-label">' . esc_html__( 'Token', 'github-plugin-installer-and-updater' ) . '</span>';
                 printf(
                     '<label class="screen-reader-text" for="%1$s">%2$s</label>',
                     esc_attr( $token_input_id ),
@@ -560,12 +564,14 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
             ?>
             <tr class="github-managed-plugin-row" data-template="true">
                 <td class="github-managed-plugin-column">
+                    <span class="github-managed-field-label"><?php esc_html_e( 'Plugin', 'github-plugin-installer-and-updater' ); ?></span>
                     <label class="screen-reader-text" for="github-managed-plugin-__index__"><?php esc_html_e( 'Plugin', 'github-plugin-installer-and-updater' ); ?></label>
                     <select name="<?php echo esc_attr( $option_base ); ?>[__index__][plugin_file]" id="github-managed-plugin-__index__" class="github-managed-plugin-select">
                         <?php echo $plugin_options_template; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                     </select>
                 </td>
                 <td class="github-managed-repo-column">
+                    <span class="github-managed-field-label"><?php esc_html_e( 'Repository', 'github-plugin-installer-and-updater' ); ?></span>
                     <?php if ( $repository_options_template ) : ?>
                         <select id="github-managed-plugin-__index__-repo-select" class="github-managed-repo-select" data-url-target="github-managed-plugin-__index__-repo" data-branch-target="github-managed-plugin-__index__-branch">
                             <?php echo $repository_options_template; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
@@ -574,9 +580,11 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
                     <input type="url" class="regular-text" name="<?php echo esc_attr( $option_base ); ?>[__index__][repository_url]" id="github-managed-plugin-__index__-repo" value="" placeholder="<?php esc_attr_e( 'https://github.com/owner/repository', 'github-plugin-installer-and-updater' ); ?>" />
                 </td>
                 <td class="github-managed-branch-column">
+                    <span class="github-managed-field-label"><?php esc_html_e( 'Branch', 'github-plugin-installer-and-updater' ); ?></span>
                     <input type="text" class="regular-text" name="<?php echo esc_attr( $option_base ); ?>[__index__][repository_branch]" id="github-managed-plugin-__index__-branch" value="main" placeholder="<?php esc_attr_e( 'main', 'github-plugin-installer-and-updater' ); ?>" />
                 </td>
                 <td class="github-managed-token-column">
+                    <span class="github-managed-field-label"><?php esc_html_e( 'Token', 'github-plugin-installer-and-updater' ); ?></span>
                     <input type="password" class="regular-text" name="<?php echo esc_attr( $option_base ); ?>[__index__][token]" id="github-managed-plugin-__index__-token" value="" autocomplete="off" placeholder="<?php esc_attr_e( 'Optional per-plugin token', 'github-plugin-installer-and-updater' ); ?>" />
                 </td>
                 <td class="github-managed-plugins-actions"><button type="button" class="button-link delete github-remove-managed-plugin"><?php esc_html_e( 'Remove', 'github-plugin-installer-and-updater' ); ?></button></td>
@@ -611,19 +619,242 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
 
             wp_register_style( $handle, false, array(), self::VERSION );
             wp_enqueue_style( $handle );
-            wp_add_inline_style(
-                $handle,
-                '.bokun-github-repo-list {display:flex;flex-wrap:wrap;gap:8px;padding-left:0;list-style:none;}' .
-                '.bokun-github-repo-list li {margin:0;}' .
-                '.github-managed-plugins-table th,.github-managed-plugins-table td{vertical-align:top;}' .
-                '.github-managed-plugin-column select,.github-managed-repo-column select{width:100%;max-width:100%;}' .
-                '.github-managed-plugins-actions{text-align:right;white-space:nowrap;}' .
-                '.github-managed-plugin-update-form select{min-width:260px;margin-right:8px;}' .
-                '.github-self-update-section{display:flex;flex-wrap:wrap;gap:24px;margin-top:32px;align-items:flex-end;}' .
-                '.github-self-update-section__fields{flex:1 1 480px;min-width:280px;}' .
-                '.github-self-update-section__actions{flex:0 1 280px;min-width:220px;}' .
-                '.github-self-update-section__actions .button{margin-top:12px;}'
-            );
+
+            $styles = <<<'CSS'
+.github-updater-wrap {
+    --github-card-bg: #ffffff;
+    --github-card-border: rgba(15, 23, 42, 0.08);
+    --github-card-shadow: 0 20px 40px -24px rgba(15, 23, 42, 0.45);
+    --github-muted-text: #475569;
+    --github-surface: #f1f5f9;
+}
+.github-updater-wrap .github-settings-content {
+    max-width: 1100px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+.github-settings-card {
+    background: var(--github-card-bg);
+    border-radius: 18px;
+    padding: 32px;
+    border: 1px solid var(--github-card-border);
+    box-shadow: var(--github-card-shadow);
+}
+@media (max-width: 782px) {
+    .github-settings-card {
+        padding: 24px;
+    }
+}
+.github-settings-card--form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+.github-settings-section {
+    margin-bottom: 32px;
+}
+.github-settings-section:last-of-type {
+    margin-bottom: 0;
+}
+.github-settings-section__title {
+    margin: 0 0 12px;
+    font-size: 1.3rem;
+}
+.github-settings-section__description {
+    margin: 0 0 20px;
+    color: var(--github-muted-text);
+    max-width: 720px;
+}
+.github-settings-card--form .form-table {
+    width: 100%;
+    border-spacing: 0 18px;
+}
+.github-settings-card--form .form-table tr {
+    background: var(--github-surface);
+    border-radius: 14px;
+    padding: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+}
+.github-settings-card--form .form-table th {
+    flex: 1 1 240px;
+    margin: 0;
+    padding: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--github-muted-text);
+}
+.github-settings-card--form .form-table td {
+    flex: 2 1 360px;
+    margin: 0;
+    padding: 0;
+}
+.github-settings-card--form .form-table .description {
+    color: var(--github-muted-text);
+}
+@media (max-width: 782px) {
+    .github-settings-card--form .form-table tr {
+        padding: 16px;
+    }
+    .github-settings-card--form .form-table th,
+    .github-settings-card--form .form-table td {
+        flex: 1 1 100%;
+    }
+}
+.github-settings-divider {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(148, 163, 184, 0), rgba(148, 163, 184, 0.4), rgba(148, 163, 184, 0));
+}
+.github-settings-card__header > h2 {
+    margin-top: 0;
+    margin-bottom: 8px;
+}
+.github-settings-card__header > p {
+    margin: 0;
+    color: var(--github-muted-text);
+    max-width: 720px;
+}
+.github-settings-empty-state {
+    margin: 0;
+    padding: 12px 16px;
+    background: var(--github-surface);
+    border-radius: 12px;
+    color: var(--github-muted-text);
+}
+.github-managed-plugin-update-form {
+    margin-top: 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+}
+.github-managed-plugin-update-form select {
+    min-width: 240px;
+    max-width: 360px;
+}
+.github-managed-plugin-update-form .button {
+    padding: 0 18px;
+}
+.bokun-github-repo-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-left: 0;
+    margin: 0;
+    list-style: none;
+}
+.bokun-github-repo-list li {
+    margin: 0;
+}
+.bokun-github-repo-list .button {
+    border-radius: 999px;
+}
+.github-managed-plugins-table {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+.github-managed-plugins-table thead {
+    position: absolute;
+    clip: rect(0 0 0 0);
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+.github-managed-plugins-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.github-managed-plugin-row {
+    display: grid;
+    gap: 18px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    background: var(--github-surface);
+    border-radius: 14px;
+    padding: 20px;
+}
+.github-managed-plugin-row td {
+    border: 0;
+    padding: 0;
+}
+.github-managed-field-label {
+    display: block;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+    color: var(--github-muted-text);
+    font-weight: 600;
+}
+.github-managed-plugin-column .description {
+    margin-top: 10px;
+    color: var(--github-muted-text);
+}
+.github-managed-plugin-column select,
+.github-managed-repo-column select,
+.github-managed-repo-column input,
+.github-managed-branch-column input,
+.github-managed-token-column input {
+    width: 100%;
+    max-width: 100%;
+}
+.github-managed-plugins-actions {
+    text-align: right;
+    align-self: end;
+    white-space: nowrap;
+}
+.github-managed-plugins-actions .button-link {
+    color: #ef4444;
+}
+.github-managed-plugins-actions .button-link:hover,
+.github-managed-plugins-actions .button-link:focus {
+    color: #dc2626;
+}
+.github-self-update-section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 28px;
+    margin-top: 40px;
+    padding-top: 28px;
+    border-top: 1px solid rgba(148, 163, 184, 0.4);
+}
+.github-self-update-section__fields {
+    flex: 1 1 460px;
+    min-width: 260px;
+}
+.github-self-update-section__actions {
+    flex: 0 1 320px;
+    min-width: 220px;
+}
+.github-self-update-section__actions p {
+    margin-top: 0;
+    color: var(--github-muted-text);
+}
+.github-self-update-section__actions .button {
+    margin-top: 16px;
+}
+.github-self-update-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+@media (max-width: 782px) {
+    .github-managed-plugin-row {
+        grid-template-columns: 1fr;
+        padding: 16px;
+    }
+    .github-self-update-section {
+        padding-top: 20px;
+    }
+}
+CSS;
+
+            wp_add_inline_style( $handle, $styles );
         }
 
         /**
@@ -657,55 +888,61 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
                 $managed_plugin_labels[ $plugin_file ] = $label;
             }
             ?>
-            <div class="wrap">
+            <div class="wrap github-updater-wrap">
                 <h1><?php esc_html_e( 'Github Plugin Installer and Updater', 'github-plugin-installer-and-updater' ); ?></h1>
-                <form method="post" action="options.php">
-                    <?php
-                    settings_fields( 'github_plugin_installer_and_updater' );
-                    $this->render_settings_sections_in_order(
-                        array(
-                            'github_plugin_installer_and_updater_repo',
-                            'github_plugin_installer_and_updater_account',
-                            'github_plugin_installer_and_updater_managed_plugins',
-                        )
-                    );
-                    submit_button( __( 'Save Settings', 'github-plugin-installer-and-updater' ) );
-                    ?>
-                </form>
-
-                <hr />
-
-                <h2><?php esc_html_e( 'Install or Update From GitHub', 'github-plugin-installer-and-updater' ); ?></h2>
-                <p><?php esc_html_e( 'Select a managed plugin and fetch the latest code from its GitHub repository.', 'github-plugin-installer-and-updater' ); ?></p>
-
-                <?php if ( ! empty( $managed_plugin_labels ) ) : ?>
-                    <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="github-managed-plugin-update-form">
-                        <?php wp_nonce_field( 'github_plugin_installer_and_updater_action' ); ?>
-                        <input type="hidden" name="action" value="github_plugin_installer_and_updater" />
-                        <label for="github-managed-plugin-select" class="screen-reader-text"><?php esc_html_e( 'Managed plugin', 'github-plugin-installer-and-updater' ); ?></label>
-                        <select name="managed_plugin" id="github-managed-plugin-select" class="regular-text">
-                            <?php foreach ( $managed_plugin_labels as $plugin_file => $label ) : ?>
-                                <option value="<?php echo esc_attr( $plugin_file ); ?>"><?php echo esc_html( $label ); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                        <?php submit_button( __( 'Run GitHub Update', 'github-plugin-installer-and-updater' ), 'primary', 'submit', false ); ?>
+                <div class="github-settings-content">
+                    <form method="post" action="options.php" class="github-settings-card github-settings-card--form">
+                        <?php
+                        settings_fields( 'github_plugin_installer_and_updater' );
+                        $this->render_settings_sections_in_order(
+                            array(
+                                'github_plugin_installer_and_updater_repo',
+                                'github_plugin_installer_and_updater_account',
+                                'github_plugin_installer_and_updater_managed_plugins',
+                            )
+                        );
+                        submit_button( __( 'Save Settings', 'github-plugin-installer-and-updater' ) );
+                        ?>
                     </form>
-                <?php else : ?>
-                    <p><?php esc_html_e( 'Add at least one managed plugin above to enable manual GitHub updates.', 'github-plugin-installer-and-updater' ); ?></p>
-                <?php endif; ?>
 
-                <div class="github-self-update-section">
-                    <div class="github-self-update-section__fields">
-                        <?php $this->render_settings_sections_in_order( array( 'github_plugin_installer_and_updater_self_update' ) ); ?>
-                    </div>
-                    <div class="github-self-update-section__actions">
-                        <p><?php esc_html_e( 'After saving the settings, trigger a one-click update for this helper plugin.', 'github-plugin-installer-and-updater' ); ?></p>
-                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="github-self-update-form">
-                            <?php wp_nonce_field( self::SELF_UPDATE_ACTION ); ?>
-                            <input type="hidden" name="action" value="<?php echo esc_attr( self::SELF_UPDATE_ACTION ); ?>" />
-                            <?php submit_button( __( 'Update Helper Plugin from GitHub', 'github-plugin-installer-and-updater' ), 'secondary', 'submit', false ); ?>
-                        </form>
-                    </div>
+                    <div class="github-settings-divider" aria-hidden="true"></div>
+
+                    <section class="github-settings-card github-settings-card--updates">
+                        <div class="github-settings-card__header">
+                            <h2><?php esc_html_e( 'Install or Update From GitHub', 'github-plugin-installer-and-updater' ); ?></h2>
+                            <p><?php esc_html_e( 'Select a managed plugin and fetch the latest code from its GitHub repository.', 'github-plugin-installer-and-updater' ); ?></p>
+                        </div>
+
+                        <?php if ( ! empty( $managed_plugin_labels ) ) : ?>
+                            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="github-managed-plugin-update-form">
+                                <?php wp_nonce_field( 'github_plugin_installer_and_updater_action' ); ?>
+                                <input type="hidden" name="action" value="github_plugin_installer_and_updater" />
+                                <label for="github-managed-plugin-select" class="screen-reader-text"><?php esc_html_e( 'Managed plugin', 'github-plugin-installer-and-updater' ); ?></label>
+                                <select name="managed_plugin" id="github-managed-plugin-select" class="regular-text">
+                                    <?php foreach ( $managed_plugin_labels as $plugin_file => $label ) : ?>
+                                        <option value="<?php echo esc_attr( $plugin_file ); ?>"><?php echo esc_html( $label ); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <?php submit_button( __( 'Run GitHub Update', 'github-plugin-installer-and-updater' ), 'primary', 'submit', false ); ?>
+                            </form>
+                        <?php else : ?>
+                            <p class="github-settings-empty-state"><?php esc_html_e( 'Add at least one managed plugin above to enable manual GitHub updates.', 'github-plugin-installer-and-updater' ); ?></p>
+                        <?php endif; ?>
+
+                        <div class="github-self-update-section">
+                            <div class="github-self-update-section__fields">
+                                <?php $this->render_settings_sections_in_order( array( 'github_plugin_installer_and_updater_self_update' ) ); ?>
+                            </div>
+                            <div class="github-self-update-section__actions">
+                                <p><?php esc_html_e( 'After saving the settings, trigger a one-click update for this helper plugin.', 'github-plugin-installer-and-updater' ); ?></p>
+                                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="github-self-update-form">
+                                    <?php wp_nonce_field( self::SELF_UPDATE_ACTION ); ?>
+                                    <input type="hidden" name="action" value="<?php echo esc_attr( self::SELF_UPDATE_ACTION ); ?>" />
+                                    <?php submit_button( __( 'Update Helper Plugin from GitHub', 'github-plugin-installer-and-updater' ), 'secondary', 'submit', false ); ?>
+                                </form>
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </div>
             <?php
@@ -761,11 +998,7 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
             if ( is_wp_error( $result ) ) {
                 $this->persist_notice( $result->get_error_message(), 'error' );
             } else {
-                $message = sprintf(
-                    /* translators: %s: Plugin name. */
-                    __( '%s was updated successfully from GitHub.', 'github-plugin-installer-and-updater' ),
-                    $plugin_label
-                );
+                $message = $this->build_update_notice( $plugin_label, $result );
                 $this->persist_notice( $message, 'success' );
             }
 
@@ -813,12 +1046,7 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
                 $plugin_data  = get_plugin_data( __FILE__, false, false );
                 $plugin_label = ! empty( $plugin_data['Name'] ) ? $plugin_data['Name'] : __( 'GitHub Plugin Installer and Updater', 'github-plugin-installer-and-updater' );
 
-                $message = sprintf(
-                    /* translators: %s: Plugin name. */
-                    __( '%s was updated successfully from GitHub.', 'github-plugin-installer-and-updater' ),
-                    $plugin_label
-                );
-
+                $message = $this->build_update_notice( $plugin_label, $result );
                 $this->persist_notice( $message, 'success' );
                 $this->maybe_clear_self_update_cache( $settings );
                 delete_site_transient( 'update_plugins' );
@@ -834,7 +1062,7 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
          * @param array  $managed_plugin Managed plugin settings.
          * @param string $global_token   Global GitHub token.
          *
-         * @return string|WP_Error
+         * @return array|WP_Error
          */
         private function update_plugin_from_github( $managed_plugin, $global_token ) {
             if ( empty( $managed_plugin['repository_url'] ) ) {
@@ -863,7 +1091,9 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
                 return new WP_Error( 'invalid_slug', __( 'Unable to determine where the plugin should be installed.', 'github-plugin-installer-and-updater' ) );
             }
 
-            $result = $this->install_package( $zip_file, $destination_slug, $managed_plugin['plugin_file'] );
+            $plugin_file      = isset( $managed_plugin['plugin_file'] ) ? $managed_plugin['plugin_file'] : '';
+            $previous_version = $this->get_plugin_version_from_file( $plugin_file );
+            $result           = $this->install_package( $zip_file, $destination_slug, $plugin_file );
 
             if ( file_exists( $zip_file ) ) {
                 @unlink( $zip_file );
@@ -873,7 +1103,13 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
                 return $result;
             }
 
-            return __( 'GitHub package downloaded and installed successfully.', 'github-plugin-installer-and-updater' );
+            $new_version = $this->get_plugin_version_from_file( $plugin_file );
+
+            return array(
+                'message'          => __( 'GitHub package downloaded and installed successfully.', 'github-plugin-installer-and-updater' ),
+                'previous_version' => $previous_version,
+                'new_version'      => $new_version,
+            );
         }
 
         /**
@@ -1193,6 +1429,37 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
         }
 
         /**
+         * Retrieve the current version for a plugin file if available.
+         *
+         * @param string $plugin_file Plugin file path relative to the plugins directory.
+         *
+         * @return string
+         */
+        private function get_plugin_version_from_file( $plugin_file ) {
+            if ( empty( $plugin_file ) ) {
+                return '';
+            }
+
+            if ( ! function_exists( 'get_plugin_data' ) ) {
+                require_once ABSPATH . 'wp-admin/includes/plugin.php';
+            }
+
+            $plugin_path = trailingslashit( WP_PLUGIN_DIR ) . ltrim( $plugin_file, '/' );
+
+            if ( ! file_exists( $plugin_path ) ) {
+                return '';
+            }
+
+            $plugin_data = get_plugin_data( $plugin_path, false, false );
+
+            if ( isset( $plugin_data['Version'] ) && '' !== $plugin_data['Version'] ) {
+                return $plugin_data['Version'];
+            }
+
+            return '';
+        }
+
+        /**
          * Return the configured managed plugins.
          *
          * @param bool $force_refresh Whether to bypass the cached settings property.
@@ -1302,21 +1569,96 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
                 }
 
                 $section = $wp_settings_sections[ self::ADMIN_SLUG ][ $section_id ];
+                echo '<section class="github-settings-section">';
 
                 if ( ! empty( $section['title'] ) ) {
-                    echo '<h2>' . esc_html( $section['title'] ) . '</h2>';
+                    echo '<h2 class="github-settings-section__title">' . esc_html( $section['title'] ) . '</h2>';
                 }
 
                 if ( ! empty( $section['callback'] ) ) {
+                    ob_start();
                     call_user_func( $section['callback'], $section );
+                    $description = trim( ob_get_clean() );
+
+                    if ( $description ) {
+                        printf( '<div class="github-settings-section__description">%s</div>', $description ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                    }
                 }
 
                 if ( isset( $wp_settings_fields[ self::ADMIN_SLUG ][ $section_id ] ) ) {
-                    echo '<table class="form-table" role="presentation">';
+                    echo '<table class="form-table github-settings-table" role="presentation">';
                     do_settings_fields( self::ADMIN_SLUG, $section_id );
                     echo '</table>';
                 }
+
+                echo '</section>';
             }
+        }
+
+        /**
+         * Build a contextual notice message for completed updates.
+         *
+         * @param string $plugin_label   Human-readable plugin label.
+         * @param array  $update_result  Result array from update_plugin_from_github().
+         *
+         * @return string
+         */
+        private function build_update_notice( $plugin_label, $update_result ) {
+            $previous_version = isset( $update_result['previous_version'] ) ? $update_result['previous_version'] : '';
+            $new_version      = isset( $update_result['new_version'] ) ? $update_result['new_version'] : '';
+            $base_message     = isset( $update_result['message'] ) ? $update_result['message'] : '';
+
+            if ( $previous_version && $new_version ) {
+                if ( version_compare( $new_version, $previous_version, '!=' ) ) {
+                    return sprintf(
+                        /* translators: 1: Plugin name. 2: Previous version. 3: New version. */
+                        __( '%1$s was updated from version %2$s to %3$s using GitHub.', 'github-plugin-installer-and-updater' ),
+                        $plugin_label,
+                        $previous_version,
+                        $new_version
+                    );
+                }
+
+                return sprintf(
+                    /* translators: 1: Plugin name. 2: Version number. */
+                    __( '%1$s files were replaced from GitHub (version %2$s was already installed).', 'github-plugin-installer-and-updater' ),
+                    $plugin_label,
+                    $new_version
+                );
+            }
+
+            if ( $new_version ) {
+                return sprintf(
+                    /* translators: 1: Plugin name. 2: Version number. */
+                    __( '%1$s was installed from GitHub (version %2$s).', 'github-plugin-installer-and-updater' ),
+                    $plugin_label,
+                    $new_version
+                );
+            }
+
+            if ( $previous_version ) {
+                return sprintf(
+                    /* translators: 1: Plugin name. 2: Version number. */
+                    __( '%1$s files were replaced from GitHub (previous version %2$s).', 'github-plugin-installer-and-updater' ),
+                    $plugin_label,
+                    $previous_version
+                );
+            }
+
+            if ( $base_message ) {
+                return sprintf(
+                    /* translators: 1: Plugin name. 2: Update result message. */
+                    __( '%1$s: %2$s', 'github-plugin-installer-and-updater' ),
+                    $plugin_label,
+                    $base_message
+                );
+            }
+
+            return sprintf(
+                /* translators: %s: Plugin name. */
+                __( '%s was updated successfully from GitHub.', 'github-plugin-installer-and-updater' ),
+                $plugin_label
+            );
         }
 
         /**
