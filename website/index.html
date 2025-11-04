@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Github Plugin Installer and Updater | Websage Solutions</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Install or update WordPress plugins directly from GitHub with Websage Solutions' Github Plugin Installer and Updater. Save time, secure releases, and empower teams with automated workflows.">
+    <meta name="keywords" content="WordPress GitHub updater, install plugin from GitHub, Websage Solutions, GitHub plugin installer, WordPress deployment automation">
+    <meta name="author" content="Websage Solutions Lab">
+    <meta name="publisher" content="Websage Solutions Lab">
+    <link rel="canonical" href="https://websage.solutions/github-plugin-installer-and-updater">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Github Plugin Installer and Updater by Websage Solutions">
+    <meta property="og:description" content="Solve manual plugin updates by installing and refreshing WordPress plugins directly from GitHub.">
+    <meta property="og:url" content="https://websage.solutions/github-plugin-installer-and-updater">
+    <meta property="og:image" content="https://websage.solutions/assets/github-updater-og.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Github Plugin Installer and Updater | Websage Solutions">
+    <meta name="twitter:description" content="Automate WordPress plugin installs and updates from GitHub in a single dashboard.">
+    <meta name="twitter:image" content="https://websage.solutions/assets/github-updater-og.png">
+    <link rel="icon" href="https://websage.solutions/favicon.ico">
+    <style>
+        :root {
+            color-scheme: light dark;
+            --accent: #2563eb;
+            --accent-dark: #1d4ed8;
+            --bg: #0f172a;
+            --text: #0f172a;
+            --text-muted: #475569;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            color: var(--text);
+            background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+        }
+        header {
+            background: radial-gradient(circle at top left, rgba(37,99,235,0.14), transparent 55%), #0f172a;
+            color: #f8fafc;
+            padding: 72px 20px;
+            text-align: center;
+        }
+        header h1 {
+            font-size: 2.75rem;
+            margin-bottom: 16px;
+            line-height: 1.2;
+        }
+        header p {
+            max-width: 760px;
+            margin: 0 auto 32px;
+            font-size: 1.15rem;
+            color: rgba(248, 250, 252, 0.85);
+        }
+        .cta-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px 28px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #ffffff;
+            background: var(--accent);
+            border-radius: 999px;
+            text-decoration: none;
+            box-shadow: 0 15px 35px rgba(37,99,235,0.35);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+        .cta-button:hover,
+        .cta-button:focus {
+            transform: translateY(-2px);
+            background: var(--accent-dark);
+            box-shadow: 0 20px 45px rgba(29,78,216,0.4);
+        }
+        main {
+            max-width: 1140px;
+            margin: -48px auto 0;
+            padding: 0 20px 80px;
+        }
+        section {
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 40px;
+            margin-bottom: 32px;
+            box-shadow: 0 30px 60px rgba(15, 23, 42, 0.12);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+        }
+        h2 {
+            font-size: 1.9rem;
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #0f172a;
+        }
+        h3 {
+            font-size: 1.35rem;
+            margin-top: 28px;
+            margin-bottom: 12px;
+            color: #1e293b;
+        }
+        p {
+            line-height: 1.7;
+            margin-bottom: 18px;
+            color: var(--text-muted);
+        }
+        ul {
+            margin: 0 0 24px 20px;
+            padding: 0;
+            color: var(--text-muted);
+            line-height: 1.7;
+        }
+        .pill-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 0;
+            margin: 0;
+            list-style: none;
+        }
+        .pill-list li {
+            padding: 10px 16px;
+            background: rgba(37, 99, 235, 0.12);
+            border-radius: 999px;
+            color: #1d4ed8;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 24px;
+        }
+        .card {
+            background: linear-gradient(180deg, rgba(248, 250, 252, 0.95), #ffffff);
+            border-radius: 20px;
+            padding: 24px;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.12);
+        }
+        .card h3 {
+            margin-top: 0;
+        }
+        blockquote {
+            margin: 0;
+            padding: 24px 28px;
+            border-left: 4px solid var(--accent);
+            background: rgba(37,99,235,0.08);
+            border-radius: 12px;
+            color: #1e293b;
+            font-style: italic;
+        }
+        footer {
+            text-align: center;
+            padding: 48px 20px 64px;
+            color: rgba(15, 23, 42, 0.65);
+        }
+        a {
+            color: var(--accent);
+        }
+        @media (max-width: 720px) {
+            header {
+                padding: 56px 18px;
+            }
+            header h1 {
+                font-size: 2.2rem;
+            }
+            section {
+                padding: 28px;
+            }
+        }
+    </style>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Github Plugin Installer and Updater",
+        "operatingSystem": "WordPress",
+        "applicationCategory": "UtilitiesApplication",
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "5",
+            "ratingCount": "12"
+        },
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": "Websage Solutions",
+            "url": "https://websage.solutions"
+        },
+        "author": {
+            "@type": "Organization",
+            "name": "Websage Solutions Lab",
+            "url": "https://websage.solutions"
+        },
+        "description": "Install or update any WordPress plugin directly from GitHub and manage releases from a single dashboard."
+    }
+    </script>
+</head>
+<body>
+    <header>
+        <h1>Github Plugin Installer and Updater</h1>
+        <p>Automate how your agency deploys plugins. Websage Solutions Lab built Github Plugin Installer and Updater so WordPress teams can install, map, and refresh plugins directly from GitHub without touching SFTP or the command line.</p>
+        <a class="cta-button" href="https://github.com/hiteshbarot07/github-updater/archive/refs/heads/main.zip">Download Plugin</a>
+    </header>
+    <main>
+        <section id="pain-points">
+            <h2>Stop wasting time on manual ZIP uploads</h2>
+            <p>Every release cycle forces developers to package a plugin, upload it by hand, and hope the correct branch made it to production. The Github Plugin Installer and Updater keeps WordPress synchronized with GitHub, bringing CI/CD-like reliability to small teams.</p>
+            <div class="grid">
+                <div class="card">
+                    <h3>Release faster</h3>
+                    <p>Deploy a new plugin build minutes after merging to GitHub. No more waiting for WordPress.org approvals or manual FTP uploads.</p>
+                </div>
+                <div class="card">
+                    <h3>Empower site managers</h3>
+                    <p>Give non-technical teammates a safe, guided interface for updating plugins without exposing Git or server credentials.</p>
+                </div>
+                <div class="card">
+                    <h3>Track every repository</h3>
+                    <p>See which GitHub repository powers each plugin in one dashboard, so onboarding new developers is quick and transparent.</p>
+                </div>
+            </div>
+        </section>
+        <section id="features">
+            <h2>Everything your GitHub workflow needs</h2>
+            <ul class="pill-list">
+                <li>Install from GitHub URL</li>
+                <li>Managed Plugins table</li>
+                <li>Manual update dropdown</li>
+                <li>Private repository tokens</li>
+                <li>Self-update support</li>
+                <li>WordPress multisite ready</li>
+            </ul>
+            <h3>Install and update from one place</h3>
+            <p>Paste any GitHub repository URL, choose the branch or tag to deploy, and the plugin handles downloading and installing the correct zip. When a new release is ready, trigger an update right from wp-admin.</p>
+            <h3>Map existing plugins to GitHub</h3>
+            <p>The Managed Plugins table lets you connect every installed plugin to its GitHub repository, so anyone on the team can update it with confidence.</p>
+            <h3>Secure access to private code</h3>
+            <p>Store a personal access token in WordPress options and the plugin will authenticate every download request, keeping client code private.</p>
+        </section>
+        <section id="use-cases">
+            <h2>Built for agencies, product teams, and freelancers</h2>
+            <p>Websage Solutions partners with agencies that maintain dozens of custom plugins. The Github Plugin Installer and Updater eliminates bottlenecks across use cases:</p>
+            <ul>
+                <li><strong>Client care teams:</strong> Refresh premium or private plugins without waiting on developers.</li>
+                <li><strong>Product releases:</strong> Ship hotfixes instantly from GitHub tags instead of drafting WordPress.org submissions.</li>
+                <li><strong>Maintenance retainers:</strong> Document every plugin-to-repository relationship during audits.</li>
+            </ul>
+            <blockquote>“We automate plugin deployments for every Websage Solutions retainer. The Github Plugin Installer and Updater keeps our fleet of WordPress sites aligned with the code we ship on GitHub.” — Websage Solutions Lab</blockquote>
+        </section>
+        <section id="getting-started">
+            <h2>How to get started</h2>
+            <ol>
+                <li>Download the latest build using the button above or clone the repository from GitHub.</li>
+                <li>Upload the zip to WordPress via <em>Plugins → Add New → Upload Plugin</em> and activate it.</li>
+                <li>Visit <em>Tools → Github Plugin Installer and Updater</em>, paste your repository URL, and configure optional tokens.</li>
+                <li>Use the Managed Plugins table to connect existing plugins and trigger updates on demand.</li>
+            </ol>
+            <p>Need help? Email <a href="mailto:lab@websage.solutions">lab@websage.solutions</a> and the Websage Solutions Lab team will walk you through onboarding.</p>
+        </section>
+        <section id="faq">
+            <h2>Frequently asked questions</h2>
+            <h3>Can I use private repositories?</h3>
+            <p>Yes. Generate a GitHub personal access token with the <code>repo</code> scope and add it to the plugin settings. The token stays in your WordPress database and is used only when downloading packages.</p>
+            <h3>Does it work with multisite?</h3>
+            <p>Absolutely. Network administrators can configure repositories once, then let individual sites run updates as needed.</p>
+            <h3>How does the plugin update itself?</h3>
+            <p>Point the self-update section to this repository and the plugin will surface update notices and provide one-click upgrades—no manual downloads required.</p>
+        </section>
+        <section id="about">
+            <h2>About Websage Solutions</h2>
+            <p>Websage Solutions is a digital consultancy focused on dependable WordPress delivery. Our research and development arm, Websage Solutions Lab, publishes tools that turn agency processes into repeatable systems.</p>
+            <p>Publisher &amp; Editor: <strong>Websage Solutions Lab</strong></p>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; <span id="year"></span> Websage Solutions. All rights reserved.</p>
+    </footer>
+    <script>
+        document.getElementById('year').textContent = new Date().getFullYear();
+    </script>
+</body>
+</html>

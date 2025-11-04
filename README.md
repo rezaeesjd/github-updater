@@ -1,6 +1,28 @@
 # GitHub Plugin Installer and Updater
 
-This helper plugin lets administrators install or update any WordPress plugin directly from GitHub. Map installed plugins to repositories, trigger manual downloads, and even update the helper itself without leaving the dashboard.
+**Publisher:** Websage Solutions Lab  •  **Company:** Websage Solutions
+
+Install or refresh any WordPress plugin straight from GitHub without leaving wp-admin. Map installed plugins to their repositories, authorize private downloads with a token, and keep this helper plugin updated from the same screen.
+
+## Why release it
+
+Agencies and product teams repeatedly ship private plugins that never touch WordPress.org. Manual zip uploads slow the process, break automation, and make it hard for non-technical site managers to help. GitHub Plugin Installer and Updater replaces that manual work with an interface that understands GitHub releases.
+
+## Key capabilities
+
+- Install plugins by pasting a GitHub repository URL and selecting a branch or tag.
+- Maintain multiple plugins at once through the Managed Plugins table.
+- Trigger on-demand updates from wp-admin or the Plugins list.
+- Configure a personal access token so private repositories download securely.
+- Enable self-updates by pointing the helper at its own repository.
+
+## Getting started
+
+1. Download the latest release from the Websage Solutions Lab repository or use the **Download Plugin** button on the product landing page.
+2. In WordPress, go to **Plugins → Add New → Upload Plugin**, choose the downloaded zip, and activate it.
+3. Open **Tools → Github Plugin Installer and Updater** to connect your GitHub repositories.
+
+You will find full plugin metadata, feature breakdowns, and SEO content in [`readme.txt`](readme.txt) for WordPress.org and [`website/index.html`](website/index.html) for the public landing page.
 
 ## Release notes
 
