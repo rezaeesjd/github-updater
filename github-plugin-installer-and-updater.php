@@ -1,5 +1,5 @@
 <?php
-/**
+/** 
  * Plugin Name: Github Plugin Installer and Updater
  * Plugin URI: https://github.com/hiteshbarot07/github-updater
  * Description: Install or update any WordPress plugin directly from GitHub repositories, including this helper plugin itself.
