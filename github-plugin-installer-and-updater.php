@@ -37,6 +37,13 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
         private $settings = array();
 
         /**
+         * Cached notice for the current request.
+         *
+         * @var array|false|null
+         */
+        private $cached_notice = null;
+
+        /**
          * Constructor.
          */
         public function __construct() {
@@ -48,12 +55,15 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
             add_action( 'admin_post_' . self::SELF_UPDATE_ACTION, array( $this, 'handle_self_update_request' ) );
             add_action( 'admin_bar_menu', array( $this, 'register_admin_bar_items' ), 120 );
             add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
+            add_action( 'admin_notices', array( $this, 'display_admin_notices' ) );
+            add_action( 'network_admin_notices', array( $this, 'display_admin_notices' ) );
 
             add_filter( 'pre_set_site_transient_update_plugins', array( $this, 'maybe_inject_self_update' ) );
             add_filter( 'plugins_api', array( $this, 'maybe_provide_self_update_details' ), 10, 3 );
             add_filter( 'http_request_args', array( $this, 'maybe_authorize_github_download' ), 10, 2 );
             add_action( 'wp_clean_plugins_cache', array( $this, 'handle_plugins_cache_cleared' ) );
             add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'add_plugin_action_links' ) );
+            add_filter( 'plugin_action_links', array( $this, 'add_global_plugin_update_link' ), 10, 4 );
         }
 
         /**
@@ -608,7 +618,11 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
                 '.github-managed-plugins-table th,.github-managed-plugins-table td{vertical-align:top;}' .
                 '.github-managed-plugin-column select,.github-managed-repo-column select{width:100%;max-width:100%;}' .
                 '.github-managed-plugins-actions{text-align:right;white-space:nowrap;}' .
-                '.github-managed-plugin-update-form select{min-width:260px;margin-right:8px;}'
+                '.github-managed-plugin-update-form select{min-width:260px;margin-right:8px;}' .
+                '.github-self-update-section{display:flex;flex-wrap:wrap;gap:24px;margin-top:32px;align-items:flex-end;}' .
+                '.github-self-update-section__fields{flex:1 1 480px;min-width:280px;}' .
+                '.github-self-update-section__actions{flex:0 1 280px;min-width:220px;}' .
+                '.github-self-update-section__actions .button{margin-top:12px;}'
             );
         }
 
@@ -620,7 +634,6 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
                 return;
             }
 
-            $notice        = $this->consume_notice();
             $refresh_repos = filter_input( INPUT_GET, 'refresh_repos', FILTER_SANITIZE_NUMBER_INT );
 
             if ( $refresh_repos && ! empty( $this->settings['github_token'] ) ) {
@@ -646,15 +659,16 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
             ?>
             <div class="wrap">
                 <h1><?php esc_html_e( 'Github Plugin Installer and Updater', 'github-plugin-installer-and-updater' ); ?></h1>
-
-                <?php if ( $notice ) : ?>
-                    <div class="notice notice-<?php echo esc_attr( $notice['type'] ); ?>"><p><?php echo esc_html( $notice['message'] ); ?></p></div>
-                <?php endif; ?>
-
                 <form method="post" action="options.php">
                     <?php
                     settings_fields( 'github_plugin_installer_and_updater' );
-                    do_settings_sections( self::ADMIN_SLUG );
+                    $this->render_settings_sections_in_order(
+                        array(
+                            'github_plugin_installer_and_updater_repo',
+                            'github_plugin_installer_and_updater_account',
+                            'github_plugin_installer_and_updater_managed_plugins',
+                        )
+                    );
                     submit_button( __( 'Save Settings', 'github-plugin-installer-and-updater' ) );
                     ?>
                 </form>
@@ -680,13 +694,19 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
                     <p><?php esc_html_e( 'Add at least one managed plugin above to enable manual GitHub updates.', 'github-plugin-installer-and-updater' ); ?></p>
                 <?php endif; ?>
 
-                <h2><?php esc_html_e( 'Update This Helper Plugin', 'github-plugin-installer-and-updater' ); ?></h2>
-                <p><?php esc_html_e( 'Configure the self-update repository in the settings above to allow one-click updates for this plugin.', 'github-plugin-installer-and-updater' ); ?></p>
-                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="github-self-update-form">
-                    <?php wp_nonce_field( self::SELF_UPDATE_ACTION ); ?>
-                    <input type="hidden" name="action" value="<?php echo esc_attr( self::SELF_UPDATE_ACTION ); ?>" />
-                    <?php submit_button( __( 'Update Helper Plugin from GitHub', 'github-plugin-installer-and-updater' ), 'secondary', 'submit', false ); ?>
-                </form>
+                <div class="github-self-update-section">
+                    <div class="github-self-update-section__fields">
+                        <?php $this->render_settings_sections_in_order( array( 'github_plugin_installer_and_updater_self_update' ) ); ?>
+                    </div>
+                    <div class="github-self-update-section__actions">
+                        <p><?php esc_html_e( 'After saving the settings, trigger a one-click update for this helper plugin.', 'github-plugin-installer-and-updater' ); ?></p>
+                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="github-self-update-form">
+                            <?php wp_nonce_field( self::SELF_UPDATE_ACTION ); ?>
+                            <input type="hidden" name="action" value="<?php echo esc_attr( self::SELF_UPDATE_ACTION ); ?>" />
+                            <?php submit_button( __( 'Update Helper Plugin from GitHub', 'github-plugin-installer-and-updater' ), 'secondary', 'submit', false ); ?>
+                        </form>
+                    </div>
+                </div>
             </div>
             <?php
         }
@@ -701,19 +721,34 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
 
             check_admin_referer( 'github_plugin_installer_and_updater_action' );
 
-            $plugin_file = isset( $_POST['managed_plugin'] ) ? sanitize_text_field( wp_unslash( $_POST['managed_plugin'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+            $plugin_file = isset( $_REQUEST['managed_plugin'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['managed_plugin'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+            $settings_url = add_query_arg( array( 'page' => self::ADMIN_SLUG ), admin_url( 'tools.php' ) );
+            $redirect_to  = isset( $_REQUEST['redirect_to'] ) ? wp_unslash( $_REQUEST['redirect_to'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+            $redirect_url = $redirect_to ? wp_validate_redirect( $redirect_to, false ) : false;
+
+            if ( ! $redirect_url ) {
+                $redirect_url = $settings_url;
+            }
 
             if ( empty( $plugin_file ) ) {
                 $this->persist_notice( __( 'Select a plugin to update before running the GitHub installer.', 'github-plugin-installer-and-updater' ), 'error' );
-                wp_safe_redirect( add_query_arg( array( 'page' => self::ADMIN_SLUG ), admin_url( 'tools.php' ) ) );
+                wp_safe_redirect( $settings_url );
                 exit;
             }
 
             $managed_plugin = $this->find_managed_plugin( $plugin_file );
 
             if ( ! $managed_plugin ) {
-                $this->persist_notice( __( 'The selected plugin is not configured for GitHub updates.', 'github-plugin-installer-and-updater' ), 'error' );
-                wp_safe_redirect( add_query_arg( array( 'page' => self::ADMIN_SLUG ), admin_url( 'tools.php' ) ) );
+                $this->persist_notice( __( 'The selected plugin is not configured for GitHub updates. Configure it on the settings page first.', 'github-plugin-installer-and-updater' ), 'error' );
+                wp_safe_redirect(
+                    add_query_arg(
+                        array(
+                            'page'             => self::ADMIN_SLUG,
+                            'configure_plugin' => $plugin_file,
+                        ),
+                        admin_url( 'tools.php' )
+                    )
+                );
                 exit;
             }
 
@@ -734,7 +769,7 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
                 $this->persist_notice( $message, 'success' );
             }
 
-            wp_safe_redirect( add_query_arg( array( 'page' => self::ADMIN_SLUG ), admin_url( 'tools.php' ) ) );
+            wp_safe_redirect( $redirect_url );
             exit;
         }
 
@@ -1179,7 +1214,7 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
          *
          * @param string $plugin_file Plugin file path.
          *
-         * @return array|null
+         * @return array|false
          */
         private function find_managed_plugin( $plugin_file ) {
             $managed_plugins = $this->get_managed_plugins();
@@ -1242,6 +1277,49 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
         }
 
         /**
+         * Render one or more settings sections in a specific order.
+         *
+         * @param array $section_ids Section identifiers to render.
+         */
+        private function render_settings_sections_in_order( $section_ids ) {
+            if ( empty( $section_ids ) ) {
+                return;
+            }
+
+            if ( ! is_array( $section_ids ) ) {
+                $section_ids = array( $section_ids );
+            }
+
+            global $wp_settings_sections, $wp_settings_fields;
+
+            if ( ! isset( $wp_settings_sections[ self::ADMIN_SLUG ] ) ) {
+                return;
+            }
+
+            foreach ( $section_ids as $section_id ) {
+                if ( ! isset( $wp_settings_sections[ self::ADMIN_SLUG ][ $section_id ] ) ) {
+                    continue;
+                }
+
+                $section = $wp_settings_sections[ self::ADMIN_SLUG ][ $section_id ];
+
+                if ( ! empty( $section['title'] ) ) {
+                    echo '<h2>' . esc_html( $section['title'] ) . '</h2>';
+                }
+
+                if ( ! empty( $section['callback'] ) ) {
+                    call_user_func( $section['callback'], $section );
+                }
+
+                if ( isset( $wp_settings_fields[ self::ADMIN_SLUG ][ $section_id ] ) ) {
+                    echo '<table class="form-table" role="presentation">';
+                    do_settings_fields( self::ADMIN_SLUG, $section_id );
+                    echo '</table>';
+                }
+            }
+        }
+
+        /**
          * Add action links to the plugin listing row.
          *
          * @param array $links Existing links.
@@ -1261,18 +1339,51 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
 
             array_unshift( $links, $settings_link );
 
-            $update_url = wp_nonce_url(
-                add_query_arg( array( 'action' => self::SELF_UPDATE_ACTION ), admin_url( 'admin-post.php' ) ),
-                self::SELF_UPDATE_ACTION
-            );
-
-            $links[] = sprintf(
-                '<a href="%1$s">%2$s</a>',
-                esc_url( $update_url ),
-                esc_html__( 'Update from GitHub', 'github-plugin-installer-and-updater' )
-            );
-
             return $links;
+        }
+
+        /**
+         * Add a GitHub update link to every plugin row in the Plugins screen.
+         *
+         * @param array  $actions     Existing row actions.
+         * @param string $plugin_file Plugin file path relative to the plugins directory.
+         * @param array  $plugin_data Plugin metadata.
+         * @param string $context     List table context.
+         *
+         * @return array
+         */
+        public function add_global_plugin_update_link( $actions, $plugin_file, $plugin_data, $context ) {
+            if ( ! current_user_can( 'manage_options' ) ) {
+                return $actions;
+            }
+
+            $redirect_to = self_admin_url( 'plugins.php' );
+
+            $update_url = wp_nonce_url(
+                add_query_arg(
+                    array(
+                        'action'         => 'github_plugin_installer_and_updater',
+                        'managed_plugin' => $plugin_file,
+                        'redirect_to'    => $redirect_to,
+                    ),
+                    admin_url( 'admin-post.php' )
+                ),
+                'github_plugin_installer_and_updater_action'
+            );
+
+            $managed_plugin = $this->find_managed_plugin( $plugin_file );
+            $title          = $managed_plugin
+                ? __( 'Fetch the latest code from the configured GitHub repository.', 'github-plugin-installer-and-updater' )
+                : __( 'Configure this plugin in the GitHub Updater settings before updating.', 'github-plugin-installer-and-updater' );
+
+            $actions['github-plugin-installer-and-updater'] = sprintf(
+                '<a class="button button-small" href="%1$s" title="%3$s">%2$s</a>',
+                esc_url( $update_url ),
+                esc_html__( 'Update from GitHub', 'github-plugin-installer-and-updater' ),
+                esc_attr( $title )
+            );
+
+            return $actions;
         }
 
         /**
@@ -1290,22 +1401,52 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
                 ),
                 MINUTE_IN_SECONDS
             );
+
+            $this->cached_notice = null;
         }
 
         /**
          * Consume persisted notice.
          *
-         * @return array|null
+         * @return array|false
          */
         private function consume_notice() {
+            if ( null !== $this->cached_notice ) {
+                return $this->cached_notice;
+            }
+
             $key    = $this->get_notice_key();
             $notice = get_transient( $key );
 
             if ( $notice ) {
                 delete_transient( $key );
+                $this->cached_notice = $notice;
+            } else {
+                $this->cached_notice = false;
             }
 
-            return $notice;
+            return $this->cached_notice;
+        }
+
+        /**
+         * Display any persisted admin notices.
+         */
+        public function display_admin_notices() {
+            if ( ! current_user_can( 'manage_options' ) ) {
+                return;
+            }
+
+            $notice = $this->consume_notice();
+
+            if ( ! $notice ) {
+                return;
+            }
+
+            printf(
+                '<div class="notice notice-%1$s"><p>%2$s</p></div>',
+                esc_attr( $notice['type'] ),
+                esc_html( $notice['message'] )
+            );
         }
 
         /**
