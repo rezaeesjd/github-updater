@@ -175,6 +175,7 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
          */
         public function sanitize_settings( $input ) {
             $sanitized = $this->get_default_settings();
+            $existing_settings = $this->get_settings();
 
             if ( isset( $input['repository_url'] ) ) {
                 $sanitized['repository_url'] = esc_url_raw( trim( $input['repository_url'] ) );
@@ -225,6 +226,8 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
                         'token'             => $token,
                     );
                 }
+            } elseif ( isset( $existing_settings[ self::MANAGED_OPTION_NAME ] ) && is_array( $existing_settings[ self::MANAGED_OPTION_NAME ] ) ) {
+                $sanitized[ self::MANAGED_OPTION_NAME ] = $existing_settings[ self::MANAGED_OPTION_NAME ];
             }
 
             if ( isset( $input['self_update_repository_url'] ) ) {
