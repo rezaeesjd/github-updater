@@ -604,6 +604,8 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
          * @param string $hook_suffix Current admin page hook suffix.
          */
         public function enqueue_admin_assets( $hook_suffix ) {
+            $this->enqueue_copy_link_assets();
+
             if ( 'tools_page_' . self::ADMIN_SLUG !== $hook_suffix ) {
                 return;
             }
@@ -858,6 +860,36 @@ if ( ! class_exists( 'Github_Plugin_Installer_And_Updater_Addon' ) ) {
 CSS;
 
             wp_add_inline_style( $handle, $styles );
+        }
+
+        /**
+         * Enqueue assets used to restyle and enhance the copy links on the Bokun dashboard.
+         */
+        private function enqueue_copy_link_assets() {
+            $script_handle = 'bokun-booking-dashboard-copy';
+
+            wp_register_script(
+                $script_handle,
+                plugins_url( 'assets/js/bokun-copy-links.js', __FILE__ ),
+                array(),
+                self::VERSION,
+                true
+            );
+
+            wp_enqueue_script( $script_handle );
+
+            $style_handle = 'bokun-booking-dashboard-copy';
+
+            wp_register_style( $style_handle, false, array(), self::VERSION );
+            wp_enqueue_style( $style_handle );
+            wp_add_inline_style(
+                $style_handle,
+                '.bokun-booking-dashboard__copy-link{background:none;border:0;padding:0;margin:0;color:#2271b1;font-weight:600;cursor:pointer;text-decoration:none;}' .
+                '.bokun-booking-dashboard__copy-link:hover,.bokun-booking-dashboard__copy-link:focus{color:#135e96;text-decoration:underline;}' .
+                '.bokun-booking-dashboard__copy-link[data-copy-state="done"]{color:#008a20;}' .
+                '.bokun-booking-dashboard__copy-link[data-copy-state="error"]{color:#b32d2e;}' .
+                '.bokun-booking-dashboard__copy-link[data-copy-state="loading"]{opacity:0.7;}'
+            );
         }
 
         /**
