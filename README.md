@@ -1,5 +1,13 @@
 # GitHub Plugin Installer and Updater
 
+> **⚠️ Merged into Bokun Bookings Management.** The GitHub install/update and
+> self-update functionality has been merged directly into the
+> [Bokun Bookings Management](https://github.com/rezaeesjd/bokun-bookings-management)
+> plugin as an integrated auto-sync module (`includes/class-bokun-github-sync.php`).
+> That plugin now keeps itself in sync with its GitHub branch automatically,
+> so this standalone helper is no longer required for Bokun sites. This
+> repository is retained for reference only.
+
 **Publisher:** Websage Solutions Lab  •  **Company:** Websage Solutions
 
 Install or refresh any WordPress plugin straight from GitHub without leaving wp-admin. Map installed plugins to their repositories, authorize private downloads with a token, and keep this helper plugin updated from the same screen.
